@@ -76,7 +76,7 @@ def replace_same_url(df, url, indexes):
     return indexes
 
 
-def weighted_urls(df, url, previous_url, NUM_OF_NEXT=5, NUM_OF_PREVIOUS=2):
+def weighted_urls(df, url, previous_url, NUM_OF_NEXT, NUM_OF_PREVIOUS):
 # This function gives weights to each URL, depending on how far it's been visited after our current url
 
 # Gets indexes of the NUM_OF_NEXT urls visited after our current url in the database
@@ -113,10 +113,10 @@ def weighted_urls(df, url, previous_url, NUM_OF_NEXT=5, NUM_OF_PREVIOUS=2):
     return urls_weighted
 
 
-def get_weigths(df, url, previous_url):
+def get_weigths(df, url, previous_url, NUM_OF_NEXT, NUM_OF_PREVIOUS):
 # For each unique url, sum the weights, sorts the result and return the sorted dictionnary    
     weigth_dic = {}
-    for url_list in weighted_urls(df, url, previous_url):
+    for url_list in weighted_urls(df, url, previous_url, NUM_OF_NEXT, NUM_OF_PREVIOUS):
         for url in url_list:
             if url[0] in weigth_dic:
                 weigth_dic[url[0]] += url[1]
@@ -160,11 +160,11 @@ def get_other_databases(folder_path, filtered_domains):
     return df_list
 
 
-def sum_score(df_list, arg2, arg3):
+def sum_score(df_list, current_url, previous_urls, NUM_OF_NEXT, NUM_OF_PREVIOUS):
 # Sum score of each unique url across the different databases
     score_dic = {}
     for dataframe in df_list:
-        for i in get_weigths(dataframe, arg2, arg3):
+        for i in get_weigths(dataframe, current_url, previous_urls, NUM_OF_NEXT, NUM_OF_PREVIOUS):
             if i[0] in score_dic:
                 score_dic[i[0]] += i[1]
             else:
@@ -182,16 +182,16 @@ def print_most_common():
     for i in b.most_common()[:5]:
         print i
 
-def get_results_yourself(df_yourself, current_url, previous_urls):
+def get_results_yourself(df_yourself, current_url, previous_urls, NUM_OF_NEXT, NUM_OF_PREVIOUS, NUM_TO_DISPLAY):
 # Predicts the next url based on your personal history
-    best_recommandations = [i[0] for i in get_weigths(df_yourself, current_url, previous_urls)]
-    return best_recommandations[:5]
+    best_recommandations = [i[0] for i in get_weigths(df_yourself, current_url, previous_urls, NUM_OF_NEXT, NUM_OF_PREVIOUS)]
+    return best_recommandations[:min(NUM_OF_NEXT, NUM_TO_DISPLAY)]
 
 
-def get_results_others(df_list, current_url, previous_urls):
+def get_results_others(df_list, current_url, previous_urls, NUM_OF_NEXT, NUM_OF_PREVIOUS, NUM_TO_DISPLAY):
 # Predicts the next url based on other people's browser history
-    best_recommandations = [i[0] for i in sum_score(df_list, current_url, previous_urls)]
-    return best_recommandations[:5]
+    best_recommandations = [i[0] for i in sum_score(df_list, current_url, previous_urls, NUM_OF_NEXT, NUM_OF_PREVIOUS)]
+    return best_recommandations[:min(NUM_OF_NEXT, NUM_TO_DISPLAY)]
 
 def split_website_videos(results):
 # Determines if an url is a youtube video or not
@@ -204,20 +204,20 @@ def split_website_videos(results):
             not_youtube_video.append(result)
     return not_youtube_video, youtube_video
 
-def generate_results(df_yourself, df_list, current_url, previous_urls, others="Results/others.txt", yourself="Results/yourself.txt", youtube="Results/youtube.txt"):
+def generate_results(df_yourself, df_list, current_url, previous_urls, NUM_OF_NEXT, NUM_OF_PREVIOUS, NUM_TO_DISPLAY, others="Results/others.txt", yourself="Results/yourself.txt", youtube="Results/youtube.txt"):
 # Generates the results in a "Results" folder, in three different txt files
 
-    not_youtube_video, youtube_video = split_website_videos(get_results_others(df_list, current_url, previous_urls))
+    not_youtube_video, youtube_video = split_website_videos(get_results_others(df_list, current_url, previous_urls, NUM_OF_NEXT, NUM_OF_PREVIOUS, NUM_TO_DISPLAY))
     
     file = open(others, "w")
     results_others = []
-    for url in not_youtube_video[:3]:
+    for url in not_youtube_video[:min(len(not_youtube_video), NUM_TO_DISPLAY)]:
         file.write(url)
         file.write(os.linesep)
     file.close()
 
     file = open(yourself, "w")
-    for url in [get_results_yourself(df_yourself, current_url, previous_urls)[0]]:
+    for url in [get_results_yourself(df_yourself, current_url, previous_urls, NUM_OF_NEXT, NUM_OF_PREVIOUS, NUM_TO_DISPLAY)[0]]:
         file.write(url)
         file.write(os.linesep)
     file.close()
@@ -229,7 +229,7 @@ def generate_results(df_yourself, df_list, current_url, previous_urls, others="R
     file.close()
 
 
-def main(current_url, previous_urls):
+def main(current_url, previous_urls, NUM_OF_NEXT=5, NUM_OF_PREVIOUS=2, NUM_TO_DISPLAY=5):
 
 # If the "Results" folder doesn't exist, creates it
     if not os.path.exists("Results/"):
@@ -252,15 +252,15 @@ def main(current_url, previous_urls):
     df_list = get_other_databases(FOLDER_PATH, FILTERED_DOMAINS)
 
 # And we generate results
-    generate_results(df, df_list, current_url, previous_urls)
+    generate_results(df, df_list, current_url, previous_urls, NUM_OF_NEXT, NUM_OF_PREVIOUS, NUM_TO_DISPLAY)
 
 if __name__=='__main__':
 
     current_url, previous_urls = 'http://scikit-learn.org/stable/modules/generated/sklearn.naive_bayes.GaussianNB.html', [ "", ""]
 
     # parser = argparse.ArgumentParser()
-    # parser.add_argument("current_url",type=str,help="Current url we're visiting")
-    # parser.add_argument("previous_urls",type=list,help="Previous urls we've just visited")
+    # parser.add_argument("current_url",type=str,help="URL we're currently visiting")
+    # parser.add_argument("previous_urls",type=list,help="Previous URLs we've just visited")
     # args = parser.parse_args()
 
     # current_url = args.current_url
