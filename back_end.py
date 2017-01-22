@@ -146,6 +146,7 @@ def delta(df):
 
 
 def treat_data(df_path, filtered_domains):
+# Preprocessing of the database (creation of the columns, filtering the rows and remove domains that we want to remove)
     df = pd.read_csv(df_path, delimiter=";", header=None)
     df.columns = (['url', 'domain', 'root domain', 'visit_time_ms', 'visit_time_str', 'day of the week', 'transition_type', 'page title'])
     df = df[['url', 'domain', 'visit_time_ms', 'visit_time_str', 'transition_type']]
@@ -155,6 +156,7 @@ def treat_data(df_path, filtered_domains):
 
 
 def get_other_databases(folder_path, filtered_domains):
+# Goes in the folder to list the other available databases
     df_list = []
     for df in os.listdir(folder_path):
         if os.path.basename(df)[0] != ".":
@@ -163,6 +165,7 @@ def get_other_databases(folder_path, filtered_domains):
 
 
 def sum_score(df_list, arg2, arg3):
+# Sum score of each unique url across the different databases
     score_dic = {}
     for dataframe in df_list:
         for i in get_weigths(dataframe, arg2, arg3):
@@ -174,6 +177,7 @@ def sum_score(df_list, arg2, arg3):
     return sorted(score_dic.items(), key=itemgetter(1), reverse=True)
 
 def print_most_common():
+# Print most common visited url. Is usefull for testing the algorithm
     list_set = [set(df.url.values)]
     for dataframe in df_list:
         list_set.append(list(set(dataframe.url.values)))
@@ -183,31 +187,35 @@ def print_most_common():
         print i
 
 def get_results_yourself(df_yourself, current_url, previous_urls):
+# Predicts the next url based on your personal history
     best_recommandations = [i[0] for i in get_weigths(df_yourself, current_url, previous_urls)]
     return best_recommandations[:5]
 
 
 def get_results_others(df_list, current_url, previous_urls):
+# Predicts the next url based on other people's browser history
     best_recommandations = [i[0] for i in sum_score(df_list, current_url, previous_urls)]
     return best_recommandations[:5]
 
 def split_website_videos(results):
-    websites = []
-    videos = []
+# Determines if an url is a youtube video or not
+    not_youtube_video = []
+    youtube_video = []
     for result in results:
         if re.search(r"^https://www.youtube.com/watch", result):
-            videos.append(result)
+            youtube_video.append(result)
         else:
-            websites.append(result)
-    return websites, videos
+            not_youtube_video.append(result)
+    return not_youtube_video, youtube_video
 
 def generate_results(df_yourself, df_list, current_url, previous_urls, others="Results/others.txt", yourself="Results/yourself.txt", youtube="Results/youtube.txt"):
-    
-    websites, videos = split_website_videos(get_results_others(df_list, current_url, previous_urls))
+# Generates the results in a "Results" folder, in three different txt files
+
+    not_youtube_video, youtube_video = split_website_videos(get_results_others(df_list, current_url, previous_urls))
     
     file = open(others, "w")
     results_others = []
-    for url in websites[:3]:
+    for url in not_youtube_video[:3]:
         file.write(url)
         file.write(os.linesep)
     file.close()
@@ -218,9 +226,8 @@ def generate_results(df_yourself, df_list, current_url, previous_urls, others="R
         file.write(os.linesep)
     file.close()
 
-    results_youtube = []
     file = open(youtube, "w")
-    for url in videos:
+    for url in youtube_video:
         file.write(url)
         file.write(os.linesep)
     file.close()
@@ -228,25 +235,27 @@ def generate_results(df_yourself, df_list, current_url, previous_urls, others="R
 
 def main(current_url, previous_urls):
 
+# If the "Results" folder doesn't exist, creates it
     if not os.path.exists("Results/"):
         os.makedirs("Results/")
 
+# List of domains we want to filter
     FILTERED_DOMAINS = (['whatsapp.com','web.whatsapp.com', 'twitter.com', 'linkedin.com',
                          'google.co.il','fr-fr.messenger.com','youtube.com','facebook.com', 'localhost',
                          'plus.google.com','google.fr', 'mail.google.com', 'google.com','messenger.com',
                          'listenonrepeat.com', 'drive.google.com', 'docs.google.com', 'calendar.google.com',
                          'chrome.google.com', 'gmail.com', 'lefigaro.fr'])
 
+# Path to the personal database
     DF_PATH = 'Databases/my_database.csv'
+# Path to the folder containing the other databases
     FOLDER_PATH = 'Databases/other_databases/'
 
+# We preprocess the data
     df = treat_data(DF_PATH, FILTERED_DOMAINS)
     df_list = get_other_databases(FOLDER_PATH, FILTERED_DOMAINS)
 
-    others = "Results/others.txt"
-    yourself = "Results/yourself.txt"
-    youtube = "Results/youtube.txt"
-
+# And we generate results
     generate_results(df, df_list, current_url, previous_urls)
 
 if __name__=='__main__':

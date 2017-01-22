@@ -1,0 +1,3 @@
+https://www.quora.com/What-is-the-decision-boundary-for-Naive-Bayes
+http://scikit-learn.org/stable/modules/tree.html
+http://scikit-learn.org/stable/auto_examples/calibration/plot_calibration.html#sphx-glr-auto-examples-calibration-plot-calibration-py
