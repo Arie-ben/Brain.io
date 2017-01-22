@@ -263,8 +263,8 @@ if __name__=='__main__':
     # parser.add_argument("previous_urls",type=list,help="Previous urls we've just visited")
     # args = parser.parse_args()
 
-    # arg2 = args.current_url
-    # arg3 = args.previous_urls
+    # current_url = args.current_url
+    # previous_url = args.previous_urls
 
     main(current_url, previous_urls)
 
