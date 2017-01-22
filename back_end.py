@@ -1,7 +1,3 @@
-"""
-Author: Arie Benhamou
-"""
-
 import pandas as pd
 import re
 from collections import Counter
